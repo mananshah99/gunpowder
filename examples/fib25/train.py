@@ -40,55 +40,33 @@ def train():
     request = BatchRequest()
     request.add_volume_request(VolumeType.RAW, constants.input_shape)
     request.add_volume_request(VolumeType.GT_LABELS, constants.output_shape)
-    request.add_volume_request(VolumeType.GT_MASK, constants.output_shape)
+    # request.add_volume_request(VolumeType.GT_MASK, constants.output_shape)
     # request.add_volume_request(VolumeType.GT_IGNORE, constants.output_shape)
     request.add_volume_request(VolumeType.GT_AFFINITIES, constants.output_shape)
 
 
     data_sources = list()
-    tstvol1_path = "/nrs/turaga/grisaitisw/data/FlyEM/fibsem_medulla_7col/rotations_20170407/augmentations/tstvol-520-1-h5/"
-    for augmentation_key in (
-        "tstvol-520-1-h5_y0_x0_xy0_angle000.0",
-        # "tstvol-520-1-h5_y0_x0_xy0_angle022.5",
-        # "tstvol-520-1-h5_y0_x0_xy0_angle045.0",
-        # "tstvol-520-1-h5_y0_x0_xy0_angle067.5",
-        # "tstvol-520-1-h5_y0_x0_xy0_angle090.0",
-        # "tstvol-520-1-h5_y0_x0_xy0_angle112.5",
-        # "tstvol-520-1-h5_y0_x0_xy0_angle135.0",
-        # "tstvol-520-1-h5_y0_x0_xy0_angle157.5",
-    ):
-        h5_filepath = "./{}.h5".format(augmentation_key)
+    for volume_name, path in {'tstvol-520-1-h5': '/home/ubuntu/data/FlyEM/fibsem_medulla_7col/tstvol-520-1-h5/'}.iteritems():
+        h5_filepath = "./{}.h5".format(volume_name)
+        print(h5_filepath)
         with h5py.File(h5_filepath, "w") as h5:
-            h5['volumes/raw'] = h5py.ExternalLink(os.path.join(tstvol1_path, "im_uint8.h5"), augmentation_key)
-            h5['volumes/labels/neuron_ids'] = h5py.ExternalLink(os.path.join(tstvol1_path, "groundtruth_seg.h5"), augmentation_key)
-            h5['volumes/labels/mask'] = h5py.ExternalLink(os.path.join(tstvol1_path, "mask.h5"), augmentation_key)
+            h5['volumes/raw'] = h5py.ExternalLink(os.path.join(path, "img_normalized.h5"), "main")
+            h5['volumes/labels/neuron_ids'] = h5py.ExternalLink(os.path.join(path, "groundtruth_seg.h5"), "main")
         data_sources.append(
             gunpowder.Hdf5Source(
                 h5_filepath,
                 datasets={
                     VolumeType.RAW: 'volumes/raw',
                     VolumeType.GT_LABELS: 'volumes/labels/neuron_ids',
-                    VolumeType.GT_MASK: 'volumes/labels/mask',
                 },
                 resolution=(8, 8, 8),
             )
         )
-    # dvid_source = DvidSource(
-    #     hostname='slowpoke3',
-    #     port=32788,
-    #     uuid='341',
-    #     raw_array_name='grayscale',
-    #     gt_array_name='groundtruth_pruned',
-    #     gt_mask_roi_name="seven_column_eroded7",
-    #     resolution=(8, 8, 8),
-    # )
-    # # data_sources.extend([dvid_source] * len(data_sources))
-    # data_sources = [dvid_source]
     data_sources = tuple(
         data_source + \
         RandomLocation() + \
-        Reject() + \
-        Normalize()
+        # Reject() + \
+        Normalize(factor=(0.5 ** 8))
         for data_source in data_sources
     )
 
