@@ -19,10 +19,10 @@ class Normalize(BatchFilter):
 
         factor = self.factor
 
-        if factor is None:
+		raw = batch.volumes[VolumeType.RAW]
+		logger.debug("automatically normalizing raw data with dtype=" + str(raw.data.dtype))
 
-            raw = batch.volumes[VolumeType.RAW]
-            logger.debug("automatically normalizing raw data with dtype=" + str(raw.data.dtype))
+        if factor is None:
 
             if raw.data.dtype == np.uint8:
                 factor = 1.0/255
